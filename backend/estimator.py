@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
+import re
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import OneHotEncoder
 
-DATA_PATH = Path(__file__).parent / "data" / "tasks.json"
+DATA_PATH = Path(__file__).parent / "data" / "tasks.csv"
 K_NEIGHBORS = 5
 CATEGORY_WEIGHT = 0.35
 
@@ -22,7 +24,17 @@ def _task_text(task: dict) -> str:
 class DeadlineEstimator:
     def __init__(self, data_path: Path = DATA_PATH):
         with open(data_path, encoding="utf-8") as f:
-            self.all_tasks = json.load(f)
+            reader = csv.DictReader(f)
+            self.all_tasks = []
+            for row in reader:
+                self.all_tasks.append({
+                    "id": int(row["id"]),
+                    "title": row["title"],
+                    "description": row["description"],
+                    "category": row["category"],
+                    "actual_days": float(row["actual_days"]),
+                    "holdout": row["holdout"].lower() == "true"
+                })
 
         self.training_tasks = [t for t in self.all_tasks if not t["holdout"]]
         self.holdout_tasks = [t for t in self.all_tasks if t["holdout"]]
@@ -87,6 +99,32 @@ class DeadlineEstimator:
             "range_max_days": round(range_max, 1),
             "similar_tasks": similar_tasks,
         }
+
+    def estimate_evolution(self, title: str, description: str, category: str) -> list[dict]:
+        # Split description into sentences.
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', description) if s.strip()]
+        if not sentences:
+            sentences = [description]
+
+        evolution = []
+        accumulated = ""
+        for i, sentence in enumerate(sentences):
+            if accumulated:
+                accumulated += " " + sentence
+            else:
+                accumulated = sentence
+
+            est = self.estimate(title, accumulated, category)
+            evolution.append({
+                "step": i + 1,
+                "added_text": sentence,
+                "accumulated_text": accumulated,
+                "point_estimate_days": est["point_estimate_days"],
+                "range_min_days": est["range_min_days"],
+                "range_max_days": est["range_max_days"],
+                "similar_tasks": est["similar_tasks"]
+            })
+        return evolution
 
     def evaluate_holdout(self) -> dict:
         errors = []
