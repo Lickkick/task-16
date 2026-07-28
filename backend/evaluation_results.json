@@ -1,0 +1,167 @@
+{
+  "holdout_count": 20,
+  "training_count": 80,
+  "mean_absolute_error_days": 1.52,
+  "predictions": [
+    {
+      "id": 31,
+      "title": "Fix search filter not clearing on navigation",
+      "category": "Bug Fix",
+      "actual_days": 0.5,
+      "predicted_days": 3.0,
+      "error_days": 2.5
+    },
+    {
+      "id": 71,
+      "title": "Fix export CSV encoding for special characters",
+      "category": "Bug Fix",
+      "actual_days": 1.0,
+      "predicted_days": 2.2,
+      "error_days": 1.2
+    },
+    {
+      "id": 72,
+      "title": "Build template library for common workflows",
+      "category": "Feature",
+      "actual_days": 5.5,
+      "predicted_days": 7.1,
+      "error_days": 1.6
+    },
+    {
+      "id": 73,
+      "title": "Write security incident response playbook",
+      "category": "Documentation",
+      "actual_days": 3.0,
+      "predicted_days": 2.6,
+      "error_days": 0.4
+    },
+    {
+      "id": 74,
+      "title": "Migrate from REST to event-driven architecture",
+      "category": "Refactoring",
+      "actual_days": 10.0,
+      "predicted_days": 5.1,
+      "error_days": 4.9
+    },
+    {
+      "id": 75,
+      "title": "Configure CDN for static assets",
+      "category": "DevOps",
+      "actual_days": 2.0,
+      "predicted_days": 4.0,
+      "error_days": 2.0
+    },
+    {
+      "id": 76,
+      "title": "Design error page illustrations",
+      "category": "Design",
+      "actual_days": 2.5,
+      "predicted_days": 2.5,
+      "error_days": 0.0
+    },
+    {
+      "id": 77,
+      "title": "Research AI-assisted task prioritization",
+      "category": "Research",
+      "actual_days": 8.0,
+      "predicted_days": 4.8,
+      "error_days": 3.2
+    },
+    {
+      "id": 78,
+      "title": "Fix webhook delivery retry exhaustion",
+      "category": "Bug Fix",
+      "actual_days": 2.0,
+      "predicted_days": 1.5,
+      "error_days": 0.5
+    },
+    {
+      "id": 80,
+      "title": "Add performance regression test suite",
+      "category": "Testing",
+      "actual_days": 3.0,
+      "predicted_days": 3.0,
+      "error_days": 0.0
+    },
+    {
+      "id": 82,
+      "title": "Add calendar sync with Google Calendar",
+      "category": "Feature",
+      "actual_days": 8.5,
+      "predicted_days": 5.8,
+      "error_days": 2.7
+    },
+    {
+      "id": 83,
+      "title": "Document data retention and GDPR compliance",
+      "category": "Documentation",
+      "actual_days": 4.0,
+      "predicted_days": 3.4,
+      "error_days": 0.6
+    },
+    {
+      "id": 85,
+      "title": "Set up staging environment mirroring production",
+      "category": "DevOps",
+      "actual_days": 3.5,
+      "predicted_days": 4.1,
+      "error_days": 0.6
+    },
+    {
+      "id": 86,
+      "title": "Design avatar placeholder generation",
+      "category": "Design",
+      "actual_days": 1.0,
+      "predicted_days": 2.7,
+      "error_days": 1.7
+    },
+    {
+      "id": 89,
+      "title": "Build custom field system for tasks",
+      "category": "Feature",
+      "actual_days": 9.5,
+      "predicted_days": 9.3,
+      "error_days": 0.2
+    },
+    {
+      "id": 94,
+      "title": "Split frontend bundle with code splitting",
+      "category": "Refactoring",
+      "actual_days": 3.0,
+      "predicted_days": 6.1,
+      "error_days": 3.1
+    },
+    {
+      "id": 97,
+      "title": "Research offline-first sync strategies",
+      "category": "Research",
+      "actual_days": 6.5,
+      "predicted_days": 5.6,
+      "error_days": 0.9
+    },
+    {
+      "id": 98,
+      "title": "Fix permission check bypass for shared links",
+      "category": "Bug Fix",
+      "actual_days": 3.5,
+      "predicted_days": 2.7,
+      "error_days": 0.8
+    },
+    {
+      "id": 99,
+      "title": "Add bulk import from Jira CSV export",
+      "category": "Feature",
+      "actual_days": 5.0,
+      "predicted_days": 4.0,
+      "error_days": 1.0
+    },
+    {
+      "id": 100,
+      "title": "Add smoke test suite for production health",
+      "category": "Testing",
+      "actual_days": 2.0,
+      "predicted_days": 4.4,
+      "error_days": 2.4
+    }
+  ]
+}
