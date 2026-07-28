@@ -42,6 +42,25 @@ class EstimateResponse(BaseModel):
     similar_tasks: list[SimilarTask]
 
 
+class EvolutionStep(BaseModel):
+    step: int
+    added_text: str
+    accumulated_text: str
+    point_estimate_days: float
+    range_min_days: float
+    range_max_days: float
+    similar_tasks: list[SimilarTask]
+
+
+class EvolutionResponse(BaseModel):
+    evolution: list[EvolutionStep]
+
+
+@app.get("/")
+def read_root():
+    return {"message": "SmartDeadlineEstimator API is running. Go to /docs for API documentation."}
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -65,3 +84,14 @@ def estimate(body: EstimateRequest):
             detail=f"Invalid category. Choose from: {', '.join(VALID_CATEGORIES)}",
         )
     return estimator.estimate(body.title, body.description, body.category)
+
+
+@app.post("/api/estimate/evolution", response_model=EvolutionResponse)
+def estimate_evolution(body: EstimateRequest):
+    if body.category not in VALID_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category. Choose from: {', '.join(VALID_CATEGORIES)}",
+        )
+    evolution_steps = estimator.estimate_evolution(body.title, body.description, body.category)
+    return {"evolution": evolution_steps}
