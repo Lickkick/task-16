@@ -1,49 +1,34 @@
 # Python
-**/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.egg-info/
-*.egg
-dist/
-build/
-*.whl
+venv/
+.venv/
 
 # Environment & Secrets
 .env
 .env.*
 .env.local
 .env.production
-.env.staging
 *.key
 *.pem
 *.secret
 secrets/
-config/secrets/
 
-# API Keys
+# API Keys & Credentials
 api_keys.json
 api_keys.yaml
 api_keys.txt
 credentials.json
 service-account*.json
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.env
-frontend/.env.*
-
 # IDE & OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # Logs
 *.log

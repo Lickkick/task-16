@@ -1,0 +1,36 @@
+# Ignore secrets so they never end up in Docker image
+.env
+.env.*
+.env.local
+.env.production
+*.key
+*.pem
+*.secret
+secrets/
+api_keys.json
+api_keys.yaml
+api_keys.txt
+credentials.json
+service-account*.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Render config (not needed in image)
+render.yaml
