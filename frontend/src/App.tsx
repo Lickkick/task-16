@@ -38,6 +38,37 @@ interface DropdownOption {
   description?: string
 }
 
+const DEFAULT_CATEGORIES = [
+  'Bug Fix',
+  'Design',
+  'DevOps',
+  'Documentation',
+  'Feature',
+  'Refactoring',
+  'Research',
+  'Testing',
+]
+
+const RENDER_BACKEND_URL = 'https://task-16-04vc.onrender.com'
+
+const BACKEND_PRESETS: DropdownOption[] = [
+  {
+    label: 'Render Cloud Backend (Active)',
+    value: 'https://task-16-04vc.onrender.com',
+    description: 'Render Hosted Service: task-16-04vc.onrender.com',
+  },
+  {
+    label: 'Local Dev Backend',
+    value: 'http://localhost:8000',
+    description: 'Runs on http://localhost:8000',
+  },
+  {
+    label: 'Vercel / Same Domain',
+    value: '',
+    description: 'Relative /api endpoints',
+  },
+]
+
 // Custom Scrollable Dropdown Component
 function ScrollableSelect({
   options,
@@ -82,19 +113,23 @@ function ScrollableSelect({
       {isOpen && (
         <div className="custom-dropdown-menu">
           <div className="dropdown-scroll-list">
-            {options.map((opt) => (
-              <div
-                key={opt.value}
-                className={`dropdown-item ${opt.value === value ? 'selected' : ''}`}
-                onClick={() => {
-                  onChange(opt.value)
-                  setIsOpen(false)
-                }}
-              >
-                <div className="dropdown-item-label">{opt.label}</div>
-                {opt.description && <div className="dropdown-item-desc">{opt.description}</div>}
-              </div>
-            ))}
+            {options.length === 0 ? (
+              <div className="dropdown-empty-item">No options available</div>
+            ) : (
+              options.map((opt) => (
+                <div
+                  key={opt.value}
+                  className={`dropdown-item ${opt.value === value ? 'selected' : ''}`}
+                  onClick={() => {
+                    onChange(opt.value)
+                    setIsOpen(false)
+                  }}
+                >
+                  <div className="dropdown-item-label">{opt.label}</div>
+                  {opt.description && <div className="dropdown-item-desc">{opt.description}</div>}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -139,29 +174,11 @@ function RangeBar({
   )
 }
 
-const BACKEND_PRESETS: DropdownOption[] = [
-  {
-    label: 'Render Cloud Backend',
-    value: 'https://smart-deadline-estimator-api.onrender.com',
-    description: 'Render Hosted FastAPI Service',
-  },
-  {
-    label: 'Local Dev Backend',
-    value: 'http://localhost:8000',
-    description: 'Runs on localhost:8000',
-  },
-  {
-    label: 'Vercel / Same Domain',
-    value: '',
-    description: 'Relative /api endpoints',
-  },
-]
-
 function App() {
-  const [categories, setCategories] = useState<string[]>([])
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState('Bug Fix')
   const [result, setResult] = useState<EstimateResult | null>(null)
   const [evolution, setEvolution] = useState<EvolutionStep[] | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
@@ -170,9 +187,9 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [showVerdict, setShowVerdict] = useState(false)
 
-  // API Config State
+  // API Config State - Defaults to Render Cloud Backend URL
   const [apiUrl, setApiUrl] = useState<string>(() => {
-    return localStorage.getItem('custom_api_url') || import.meta.env.VITE_API_URL || ''
+    return localStorage.getItem('custom_api_url') || import.meta.env.VITE_API_URL || RENDER_BACKEND_URL
   })
   const [apiKey, setApiKey] = useState<string>(() => {
     return localStorage.getItem('custom_api_key') || ''
@@ -197,9 +214,11 @@ function App() {
         return r.json()
       })
       .then((data) => {
-        setCategories(data.categories)
-        if (data.categories.length > 0 && !category) {
-          setCategory(data.categories[0])
+        if (data.categories && data.categories.length > 0) {
+          setCategories(data.categories)
+          if (!category) {
+            setCategory(data.categories[0])
+          }
         }
       })
       .catch(() => setError('Could not connect to the estimator API. Check your API settings below.'))
@@ -337,7 +356,7 @@ function App() {
                 type="text"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="e.g. https://smart-deadline-estimator-api.onrender.com or http://localhost:8000"
+                placeholder="e.g. https://task-16-04vc.onrender.com or http://localhost:8000"
               />
             </label>
 
