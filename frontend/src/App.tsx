@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import './App.css'
-
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')
 
 interface SimilarTask {
   id: number
@@ -32,6 +30,76 @@ interface EvolutionStep {
   range_min_days: number
   range_max_days: number
   similar_tasks: SimilarTask[]
+}
+
+interface DropdownOption {
+  label: string
+  value: string
+  description?: string
+}
+
+// Custom Scrollable Dropdown Component
+function ScrollableSelect({
+  options,
+  value,
+  onChange,
+  placeholder = 'Select an option...',
+}: {
+  options: DropdownOption[]
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const selectedOption = options.find((opt) => opt.value === value)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div className="custom-dropdown-container" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`custom-dropdown-trigger ${isOpen ? 'active' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <span className="dropdown-selected-text">
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <span className="dropdown-arrow">{isOpen ? '▲' : '▼'}</span>
+      </button>
+
+      {isOpen && (
+        <div className="custom-dropdown-menu">
+          <div className="dropdown-scroll-list">
+            {options.map((opt) => (
+              <div
+                key={opt.value}
+                className={`dropdown-item ${opt.value === value ? 'selected' : ''}`}
+                onClick={() => {
+                  onChange(opt.value)
+                  setIsOpen(false)
+                }}
+              >
+                <div className="dropdown-item-label">{opt.label}</div>
+                {opt.description && <div className="dropdown-item-desc">{opt.description}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function RangeBar({
@@ -71,6 +139,24 @@ function RangeBar({
   )
 }
 
+const BACKEND_PRESETS: DropdownOption[] = [
+  {
+    label: 'Render Cloud Backend',
+    value: 'https://smart-deadline-estimator-api.onrender.com',
+    description: 'Render Hosted FastAPI Service',
+  },
+  {
+    label: 'Local Dev Backend',
+    value: 'http://localhost:8000',
+    description: 'Runs on localhost:8000',
+  },
+  {
+    label: 'Vercel / Same Domain',
+    value: '',
+    description: 'Relative /api endpoints',
+  },
+]
+
 function App() {
   const [categories, setCategories] = useState<string[]>([])
   const [title, setTitle] = useState('')
@@ -84,22 +170,57 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [showVerdict, setShowVerdict] = useState(false)
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/categories`)
-      .then((r) => r.json())
+  // API Config State
+  const [apiUrl, setApiUrl] = useState<string>(() => {
+    return localStorage.getItem('custom_api_url') || import.meta.env.VITE_API_URL || ''
+  })
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return localStorage.getItem('custom_api_key') || ''
+  })
+  const [showApiSettings, setShowApiSettings] = useState(false)
+
+  const getHeaders = useCallback(() => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (apiKey) {
+      headers['X-API-Key'] = apiKey
+    }
+    return headers
+  }, [apiKey])
+
+  const fetchInitialData = useCallback(() => {
+    const baseUrl = apiUrl.replace(/\/$/, '')
+    setError(null)
+
+    fetch(`${baseUrl}/api/categories`, { headers: getHeaders() })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then((data) => {
         setCategories(data.categories)
-        if (data.categories.length > 0) {
+        if (data.categories.length > 0 && !category) {
           setCategory(data.categories[0])
         }
       })
-      .catch(() => setError('Could not connect to the estimator API.'))
+      .catch(() => setError('Could not connect to the estimator API. Check your API settings below.'))
 
-    fetch(`${API_URL}/api/evaluation`)
+    fetch(`${baseUrl}/api/evaluation`, { headers: getHeaders() })
       .then((r) => r.json())
       .then(setEvaluation)
       .catch(() => {})
-  }, [])
+  }, [apiUrl, category, getHeaders])
+
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
+
+  const handleSaveSettings = (e: React.FormEvent) => {
+    e.preventDefault()
+    localStorage.setItem('custom_api_url', apiUrl)
+    localStorage.setItem('custom_api_key', apiKey)
+    fetchInitialData()
+    setShowApiSettings(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,10 +230,12 @@ function App() {
     setEvolution(null)
     setActiveStep(null)
 
+    const baseUrl = apiUrl.replace(/\/$/, '')
+
     try {
-      const res = await fetch(`${API_URL}/api/estimate`, {
+      const res = await fetch(`${baseUrl}/api/estimate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ title, description, category }),
       })
 
@@ -125,9 +248,9 @@ function App() {
       setResult(mainResult)
 
       // Fetch evolution
-      const evoRes = await fetch(`${API_URL}/api/estimate/evolution`, {
+      const evoRes = await fetch(`${baseUrl}/api/estimate/evolution`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify({ title, description, category }),
       })
 
@@ -145,7 +268,6 @@ function App() {
     }
   }
 
-  // Determine scaleMax dynamically based on maximum days predicted
   const getScaleMax = () => {
     let maxDays = 15
     if (result) {
@@ -161,7 +283,6 @@ function App() {
 
   const scaleMax = getScaleMax()
 
-  // Get current step details (either selected from evolution timeline, or final result)
   const currentStepData =
     evolution && activeStep !== null
       ? evolution.find((s) => s.step === activeStep)
@@ -172,14 +293,70 @@ function App() {
   const displayMax = currentStepData ? currentStepData.range_max_days : result?.range_max_days
   const displaySimilar = currentStepData ? currentStepData.similar_tasks : result?.similar_tasks
 
+  const categoryOptions: DropdownOption[] = categories.map((c) => ({
+    label: c,
+    value: c,
+  }))
+
   return (
     <div className="app">
       <header className="header">
-        <div className="header-badge">SFCollab Task Suite</div>
+        <div className="header-top">
+          <div className="header-badge">SFCollab Task Suite</div>
+          <button
+            className="api-config-btn"
+            onClick={() => setShowApiSettings(!showApiSettings)}
+            title="Configure API Connection & Key"
+          >
+            API Settings {showApiSettings ? '▲' : '⚙'}
+          </button>
+        </div>
+
         <h1>Smart Deadline Estimator</h1>
         <p className="subtitle">
           Leverage historical task patterns to predict development duration and map team uncertainty.
         </p>
+
+        {showApiSettings && (
+          <form className="api-settings-panel" onSubmit={handleSaveSettings}>
+            <h3>API Connection & Authentication Settings</h3>
+
+            <label className="input-label">
+              <span>Quick Backend Preset</span>
+              <ScrollableSelect
+                options={BACKEND_PRESETS}
+                value={apiUrl}
+                onChange={(newUrl) => setApiUrl(newUrl)}
+                placeholder="Choose a backend preset..."
+              />
+            </label>
+
+            <label className="input-label">
+              <span>Backend API Base URL</span>
+              <input
+                type="text"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="e.g. https://smart-deadline-estimator-api.onrender.com or http://localhost:8000"
+              />
+            </label>
+
+            <label className="input-label">
+              <span>API Key (Optional)</span>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Paste API Key if required by backend"
+              />
+            </label>
+
+            <div className="settings-actions">
+              <button type="submit" className="save-settings-btn">Save & Connect</button>
+              <button type="button" className="cancel-settings-btn" onClick={() => setShowApiSettings(false)}>Cancel</button>
+            </div>
+          </form>
+        )}
 
         {evaluation && (
           <div className="mae-container">
@@ -234,16 +411,15 @@ function App() {
 
             <label className="input-label">
               <span>Category</span>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <ScrollableSelect
+                options={categoryOptions}
+                value={category}
+                onChange={(val) => setCategory(val)}
+                placeholder="Select a category..."
+              />
             </label>
 
-            <button type="submit" className="submit-btn" disabled={loading || categories.length === 0}>
+            <button type="submit" className="submit-btn" disabled={loading || !category}>
               {loading ? (
                 <span className="spinner-container">
                   <span className="spinner" /> Estimating...
@@ -253,7 +429,20 @@ function App() {
               )}
             </button>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && (
+              <div className="error-message">
+                <p>{error}</p>
+                {!showApiSettings && (
+                  <button
+                    type="button"
+                    className="error-api-btn"
+                    onClick={() => setShowApiSettings(true)}
+                  >
+                    Configure API Connection URL & Key ⚙
+                  </button>
+                )}
+              </div>
+            )}
           </form>
         </div>
 
@@ -269,7 +458,6 @@ function App() {
                 )}
               </div>
 
-              {/* Estimate values */}
               <div className="estimate-summary">
                 <div className="estimate-row">
                   <div className="estimate-block">
@@ -297,65 +485,62 @@ function App() {
                 </div>
               </div>
 
-              {/* Evolution timeline (Stretch Goal) */}
               {evolution && evolution.length > 1 && (
                 <div className="evolution-section">
-                  <h3>Estimate Evolution (per sentence added)</h3>
-                  <p className="evolution-helper">
-                    Click steps below to see how adding more detail shifted the model's estimate:
+                  <h3>Estimate Evolution Timeline</h3>
+                  <p className="evolution-subtitle">
+                    Click a step below to inspect how detail accumulation shifted the predicted timeline:
                   </p>
-                  <div className="evolution-timeline">
-                    {evolution.map((step) => {
-                      const isActive = step.step === activeStep
-                      return (
-                        <div
-                          key={step.step}
-                          className={`timeline-step ${isActive ? 'active' : ''}`}
-                          onClick={() => setActiveStep(step.step)}
-                        >
-                          <div className="timeline-marker">
-                            <span className="step-num">{step.step}</span>
-                          </div>
-                          <div className="timeline-content">
-                            <p className="timeline-text">"{step.added_text}"</p>
-                            <span className="timeline-est">
-                              {step.point_estimate_days}d ({step.range_min_days} - {step.range_max_days}d)
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
+
+                  <div className="evolution-steps">
+                    {evolution.map((step) => (
+                      <button
+                        key={step.step}
+                        type="button"
+                        className={`step-btn ${activeStep === step.step ? 'active' : ''}`}
+                        onClick={() => setActiveStep(step.step)}
+                      >
+                        <span className="step-num">Step {step.step}</span>
+                        <span className="step-point">{step.point_estimate_days}d</span>
+                      </button>
+                    ))}
                   </div>
+
+                  {currentStepData && (
+                    <div className="step-detail-card">
+                      <div className="step-added-text">
+                        <strong>Added in this step:</strong> &quot;{currentStepData.added_text}&quot;
+                      </div>
+                      <div className="step-accumulated-text">
+                        <strong>Accumulated Context:</strong> {currentStepData.accumulated_text}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Similar tasks list */}
-              <div className="similar-section">
-                <h3>Similar Completed Tasks Leaned On</h3>
-                <ul className="similar-list">
-                  {displaySimilar?.map((task) => (
-                    <li key={task.id} className="similar-item">
-                      <div className="similar-header">
-                        <span className="similar-title">{task.title}</span>
-                        <span className="similar-days">{task.actual_days} days</span>
+              {displaySimilar && displaySimilar.length > 0 && (
+                <div className="similar-tasks-section">
+                  <h3>K-Nearest Historical Tasks</h3>
+                  <div className="tasks-grid">
+                    {displaySimilar.map((t) => (
+                      <div key={t.id} className="task-item">
+                        <div className="task-header">
+                          <span className="task-title">{t.title}</span>
+                          <span className="task-sim">{(t.similarity * 100).toFixed(0)}% match</span>
+                        </div>
+                        <div className="task-meta">
+                          <span className="task-category">{t.category}</span>
+                          <span className="task-duration">{t.actual_days} days actual</span>
+                        </div>
                       </div>
-                      <div className="similar-meta">
-                        <span className="tag">{task.category}</span>
-                        <span className="similarity">
-                          {(task.similarity * 100).toFixed(0)}% match
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="disclaimer">
-                Range is calculated from local neighborhood distribution. Use the upper bound to buffer timelines.
-              </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="empty-results-card">
+            <div className="empty-results">
               <h3>No Prediction Yet</h3>
               <p>Fill out the form and submit to see the estimated duration, range, and similar tasks.</p>
             </div>
