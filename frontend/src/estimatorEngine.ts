@@ -152,8 +152,57 @@ class ClientEstimator {
       vec.set(token, tf * idfVal)
     })
 
-    vec.set(`__CAT_${category}`, CATEGORY_WEIGHT * 5)
+    if (category) {
+      vec.set(`__CAT_${category}`, CATEGORY_WEIGHT * 5)
+    }
     return vec
+  }
+
+  public predictCategory(title: string, description: string = ''): string {
+    const text = `${title} ${description}`.toLowerCase()
+    if (!text.trim()) return 'Feature'
+
+    // Rule-based keyword matching for fast auto-detection
+    if (/\b(fix|bug|broken|issue|error|leak|wrong|crash|loop|timeout|patch|fail)\b/i.test(text)) {
+      return 'Bug Fix'
+    }
+    if (/\b(refactor|extract|split|rewrite|clean|migrate|consolidate|decouple)\b/i.test(text)) {
+      return 'Refactoring'
+    }
+    if (/\b(doc|docs|document|guide|readme|runbook|wiki|documentation)\b/i.test(text)) {
+      return 'Documentation'
+    }
+    if (/\b(docker|ci|cd|pipeline|actions|prometheus|grafana|kubernetes|k8s|aws|devops|auto-scaling|vault)\b/i.test(text)) {
+      return 'DevOps'
+    }
+    if (/\b(design|wireframe|illustration|ui|layout|icon|palette|mockup|sketch)\b/i.test(text)) {
+      return 'Design'
+    }
+    if (/\b(test|tests|testing|unit test|integration test|e2e|coverage|pact|snapshot)\b/i.test(text)) {
+      return 'Testing'
+    }
+    if (/\b(research|evaluate|spike|compare|audit|benchmark|crdt|crdts|study)\b/i.test(text)) {
+      return 'Research'
+    }
+    if (/\b(add|build|implement|create|panel|toggle|support|dashboard|feature|export|kanban|auth|notification)\b/i.test(text)) {
+      return 'Feature'
+    }
+
+    // Fallback similarity match against historical tasks
+    const queryVec = this.createQueryVector(title, description, '')
+    let bestCat = 'Feature'
+    let bestSim = -1
+
+    for (const task of this.trainingTasks) {
+      const taskVec = this.taskVectors.get(task.id) || new Map()
+      const sim = cosineSimilarity(queryVec, taskVec)
+      if (sim > bestSim) {
+        bestSim = sim
+        bestCat = task.category
+      }
+    }
+
+    return bestCat
   }
 
   public estimate(title: string, description: string, category: string): EstimateResult {

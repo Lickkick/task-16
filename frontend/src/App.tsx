@@ -13,6 +13,52 @@ interface DropdownOption {
   description?: string
 }
 
+interface TestPreset {
+  label: string
+  title: string
+  description: string
+  category: string
+}
+
+const QUICK_TEST_PRESETS: TestPreset[] = [
+  {
+    label: '🐛 Bug Fix',
+    title: 'Fix login button not responding on mobile Safari',
+    description: 'Users report the login button does nothing when tapped on iOS Safari. Likely a touch event handler issue.',
+    category: 'Bug Fix',
+  },
+  {
+    label: '✨ Feature',
+    title: 'Add dark mode toggle to settings page',
+    description: 'Implement a theme switcher that persists user preference in localStorage and applies CSS variables across the app.',
+    category: 'Feature',
+  },
+  {
+    label: '⚙️ DevOps',
+    title: 'Set up CI pipeline with GitHub Actions',
+    description: 'Configure automated test runs, linting, and deployment on push to main branch.',
+    category: 'DevOps',
+  },
+  {
+    label: '🛠️ Refactoring',
+    title: 'Extract shared form validation into library',
+    description: 'Move duplicated email, phone, and password validation from 6 components into forms package.',
+    category: 'Refactoring',
+  },
+  {
+    label: '🎨 Design',
+    title: 'Design mobile-responsive dashboard layout',
+    description: 'Adapt desktop dashboard widgets into collapsible cards for screens under 768px width.',
+    category: 'Design',
+  },
+  {
+    label: '🧪 Testing',
+    title: 'Add unit tests for payment validation module',
+    description: 'Cover edge cases: expired cards, invalid CVV, currency mismatches, and refund logic.',
+    category: 'Testing',
+  },
+]
+
 // Custom Scrollable Dropdown Component
 function ScrollableSelect({
   options,
@@ -123,6 +169,7 @@ function App() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
+  const [isAutoDetected, setIsAutoDetected] = useState(false)
   const [result, setResult] = useState<EstimateResult | null>(null)
   const [evolution, setEvolution] = useState<EvolutionStep[] | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
@@ -131,7 +178,6 @@ function App() {
   const [showVerdict, setShowVerdict] = useState(false)
 
   useEffect(() => {
-    // Initialize categories and evaluation info directly from the engine
     const availableCategories = estimatorEngine.getCategories()
     setCategories(availableCategories)
     if (availableCategories.length > 0) {
@@ -142,6 +188,37 @@ function App() {
     setEvaluation(evalData)
   }, [])
 
+  // Auto-detect category as user types Title or Description
+  const handleTitleChange = (val: string) => {
+    setTitle(val)
+    if (val.trim()) {
+      const detected = estimatorEngine.predictCategory(val, description)
+      setCategory(detected)
+      setIsAutoDetected(true)
+    }
+  }
+
+  const handleDescriptionChange = (val: string) => {
+    setDescription(val)
+    if (title.trim() || val.trim()) {
+      const detected = estimatorEngine.predictCategory(title, val)
+      setCategory(detected)
+      setIsAutoDetected(true)
+    }
+  }
+
+  const handleCategorySelect = (val: string) => {
+    setCategory(val)
+    setIsAutoDetected(false) // User manually selected category
+  }
+
+  const handleApplyPreset = (preset: TestPreset) => {
+    setTitle(preset.title)
+    setDescription(preset.description)
+    setCategory(preset.category)
+    setIsAutoDetected(true)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -149,7 +226,6 @@ function App() {
     setEvolution(null)
     setActiveStep(null)
 
-    // Execute instant prediction with small micro-delay for smooth UX
     setTimeout(() => {
       const mainResult = estimatorEngine.estimate(title, description, category)
       const evoSteps = estimatorEngine.estimateEvolution(title, description, category)
@@ -228,17 +304,37 @@ function App() {
 
       <main className="main">
         <div className="form-container">
+          {/* Quick Test Box */}
+          <div className="quick-test-box">
+            <div className="quick-test-header">
+              <span>⚡ Quick Test Samples</span>
+              <span className="quick-test-sub">Click any sample to test title & auto-category detection:</span>
+            </div>
+            <div className="quick-test-chips">
+              {QUICK_TEST_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="quick-chip"
+                  onClick={() => handleApplyPreset(preset)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <form className="estimate-form" onSubmit={handleSubmit}>
             <h2>Estimate New Task</h2>
-            <p className="form-helper">Enter details below to generate a statistical deadline range.</p>
+            <p className="form-helper">Type task title directly below — category will auto-detect!</p>
 
             <label className="input-label">
               <span>Task Title</span>
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Fix oauth login redirect on mobile Safari"
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="e.g. Fix oauth login redirect bug on mobile Safari"
                 required
                 minLength={3}
               />
@@ -248,20 +344,27 @@ function App() {
               <span>Description</span>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
                 placeholder="Describe what needs to be built. Add multiple sentences to see the estimate evolution over time!"
                 required
                 minLength={10}
-                rows={6}
+                rows={5}
               />
             </label>
 
             <label className="input-label">
-              <span>Category</span>
+              <div className="category-label-row">
+                <span>Category</span>
+                {isAutoDetected && category && (
+                  <span className="auto-detect-badge" title="Auto-detected based on task title & description keywords">
+                    ✨ Auto-detected: <strong>{category}</strong>
+                  </span>
+                )}
+              </div>
               <ScrollableSelect
                 options={categoryOptions}
                 value={category}
-                onChange={(val) => setCategory(val)}
+                onChange={handleCategorySelect}
                 placeholder="Select a category..."
               />
             </label>
