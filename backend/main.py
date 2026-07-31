@@ -1,6 +1,8 @@
+"""SmartDeadlineEstimator API."""
 
-
-from fastapi import FastAPI, HTTPException
+import os
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -19,6 +21,14 @@ app.add_middleware(
 estimator = DeadlineEstimator()
 
 VALID_CATEGORIES = sorted({t["category"] for t in estimator.all_tasks})
+
+# Environment API Key support (e.g. from Render / Vercel env vars)
+EXPECTED_API_KEY = os.getenv("API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+
+def verify_api_key(x_api_key: Optional[str] = Header(None)):
+    if EXPECTED_API_KEY and x_api_key != EXPECTED_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API Key")
 
 
 class EstimateRequest(BaseModel):
@@ -63,7 +73,10 @@ def read_root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "api_key_configured": bool(EXPECTED_API_KEY)
+    }
 
 
 @app.get("/api/categories")
@@ -77,7 +90,8 @@ def evaluation():
 
 
 @app.post("/api/estimate", response_model=EstimateResponse)
-def estimate(body: EstimateRequest):
+def estimate(body: EstimateRequest, x_api_key: Optional[str] = Header(None)):
+    verify_api_key(x_api_key)
     if body.category not in VALID_CATEGORIES:
         raise HTTPException(
             status_code=400,
@@ -87,7 +101,8 @@ def estimate(body: EstimateRequest):
 
 
 @app.post("/api/estimate/evolution", response_model=EvolutionResponse)
-def estimate_evolution(body: EstimateRequest):
+def estimate_evolution(body: EstimateRequest, x_api_key: Optional[str] = Header(None)):
+    verify_api_key(x_api_key)
     if body.category not in VALID_CATEGORIES:
         raise HTTPException(
             status_code=400,
