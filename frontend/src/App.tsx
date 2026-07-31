@@ -1,73 +1,17 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import './App.css'
-
-interface SimilarTask {
-  id: number
-  title: string
-  category: string
-  actual_days: number
-  similarity: number
-}
-
-interface EstimateResult {
-  point_estimate_days: number
-  range_min_days: number
-  range_max_days: number
-  similar_tasks: SimilarTask[]
-}
-
-interface EvaluationInfo {
-  mean_absolute_error_days: number
-  holdout_count: number
-  training_count: number
-}
-
-interface EvolutionStep {
-  step: number
-  added_text: string
-  accumulated_text: string
-  point_estimate_days: number
-  range_min_days: number
-  range_max_days: number
-  similar_tasks: SimilarTask[]
-}
+import { estimatorEngine } from './estimatorEngine'
+import type {
+  EstimateResult,
+  EvaluationInfo,
+  EvolutionStep,
+} from './estimatorEngine'
 
 interface DropdownOption {
   label: string
   value: string
   description?: string
 }
-
-const DEFAULT_CATEGORIES = [
-  'Bug Fix',
-  'Design',
-  'DevOps',
-  'Documentation',
-  'Feature',
-  'Refactoring',
-  'Research',
-  'Testing',
-]
-
-const RENDER_BACKEND_URL = 'https://task-16-04vc.onrender.com'
-
-const BACKEND_PRESETS: DropdownOption[] = [
-  {
-    label: 'Render Cloud Backend (Active)',
-    value: 'https://task-16-04vc.onrender.com',
-    description: 'Render Hosted Service: task-16-04vc.onrender.com',
-  },
-  {
-    label: 'Local Dev Backend',
-    value: 'http://localhost:8000',
-    description: 'Runs on http://localhost:8000',
-  },
-  {
-    label: 'Vercel / Same Domain',
-    value: '',
-    description: 'Relative /api endpoints',
-  },
-]
 
 // Custom Scrollable Dropdown Component
 function ScrollableSelect({
@@ -175,116 +119,48 @@ function RangeBar({
 }
 
 function App() {
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [categories, setCategories] = useState<string[]>([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('Bug Fix')
+  const [category, setCategory] = useState('')
   const [result, setResult] = useState<EstimateResult | null>(null)
   const [evolution, setEvolution] = useState<EvolutionStep[] | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
   const [evaluation, setEvaluation] = useState<EvaluationInfo | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [showVerdict, setShowVerdict] = useState(false)
 
-  // API Config State - Defaults to Render Cloud Backend URL
-  const [apiUrl, setApiUrl] = useState<string>(() => {
-    return localStorage.getItem('custom_api_url') || import.meta.env.VITE_API_URL || RENDER_BACKEND_URL
-  })
-  const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem('custom_api_key') || ''
-  })
-  const [showApiSettings, setShowApiSettings] = useState(false)
-
-  const getHeaders = useCallback(() => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (apiKey) {
-      headers['X-API-Key'] = apiKey
-    }
-    return headers
-  }, [apiKey])
-
-  const fetchInitialData = useCallback(() => {
-    const baseUrl = apiUrl.replace(/\/$/, '')
-    setError(null)
-
-    fetch(`${baseUrl}/api/categories`, { headers: getHeaders() })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then((data) => {
-        if (data.categories && data.categories.length > 0) {
-          setCategories(data.categories)
-          if (!category) {
-            setCategory(data.categories[0])
-          }
-        }
-      })
-      .catch(() => setError('Could not connect to the estimator API. Check your API settings below.'))
-
-    fetch(`${baseUrl}/api/evaluation`, { headers: getHeaders() })
-      .then((r) => r.json())
-      .then(setEvaluation)
-      .catch(() => {})
-  }, [apiUrl, category, getHeaders])
-
   useEffect(() => {
-    fetchInitialData()
-  }, [fetchInitialData])
+    // Initialize categories and evaluation info directly from the engine
+    const availableCategories = estimatorEngine.getCategories()
+    setCategories(availableCategories)
+    if (availableCategories.length > 0) {
+      setCategory(availableCategories[0])
+    }
 
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault()
-    localStorage.setItem('custom_api_url', apiUrl)
-    localStorage.setItem('custom_api_key', apiKey)
-    fetchInitialData()
-    setShowApiSettings(false)
-  }
+    const evalData = estimatorEngine.evaluateHoldout()
+    setEvaluation(evalData)
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
     setResult(null)
     setEvolution(null)
     setActiveStep(null)
 
-    const baseUrl = apiUrl.replace(/\/$/, '')
+    // Execute instant prediction with small micro-delay for smooth UX
+    setTimeout(() => {
+      const mainResult = estimatorEngine.estimate(title, description, category)
+      const evoSteps = estimatorEngine.estimateEvolution(title, description, category)
 
-    try {
-      const res = await fetch(`${baseUrl}/api/estimate`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ title, description, category }),
-      })
-
-      if (!res.ok) {
-        const body = await res.json()
-        throw new Error(body.detail || 'Estimation failed')
-      }
-
-      const mainResult = await res.json()
       setResult(mainResult)
-
-      // Fetch evolution
-      const evoRes = await fetch(`${baseUrl}/api/estimate/evolution`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ title, description, category }),
-      })
-
-      if (evoRes.ok) {
-        const evoData = await evoRes.json()
-        setEvolution(evoData.evolution)
-        if (evoData.evolution.length > 0) {
-          setActiveStep(evoData.evolution.length)
-        }
+      setEvolution(evoSteps)
+      if (evoSteps.length > 0) {
+        setActiveStep(evoSteps.length)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setLoading(false)
-    }
+    }, 150)
   }
 
   const getScaleMax = () => {
@@ -322,60 +198,12 @@ function App() {
       <header className="header">
         <div className="header-top">
           <div className="header-badge">SFCollab Task Suite</div>
-          <button
-            className="api-config-btn"
-            onClick={() => setShowApiSettings(!showApiSettings)}
-            title="Configure API Connection & Key"
-          >
-            API Settings {showApiSettings ? '▲' : '⚙'}
-          </button>
         </div>
 
         <h1>Smart Deadline Estimator</h1>
         <p className="subtitle">
           Leverage historical task patterns to predict development duration and map team uncertainty.
         </p>
-
-        {showApiSettings && (
-          <form className="api-settings-panel" onSubmit={handleSaveSettings}>
-            <h3>API Connection & Authentication Settings</h3>
-
-            <label className="input-label">
-              <span>Quick Backend Preset</span>
-              <ScrollableSelect
-                options={BACKEND_PRESETS}
-                value={apiUrl}
-                onChange={(newUrl) => setApiUrl(newUrl)}
-                placeholder="Choose a backend preset..."
-              />
-            </label>
-
-            <label className="input-label">
-              <span>Backend API Base URL</span>
-              <input
-                type="text"
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="e.g. https://task-16-04vc.onrender.com or http://localhost:8000"
-              />
-            </label>
-
-            <label className="input-label">
-              <span>API Key (Optional)</span>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste API Key if required by backend"
-              />
-            </label>
-
-            <div className="settings-actions">
-              <button type="submit" className="save-settings-btn">Save & Connect</button>
-              <button type="button" className="cancel-settings-btn" onClick={() => setShowApiSettings(false)}>Cancel</button>
-            </div>
-          </form>
-        )}
 
         {evaluation && (
           <div className="mae-container">
@@ -447,21 +275,6 @@ function App() {
                 'Get Smart Estimate'
               )}
             </button>
-
-            {error && (
-              <div className="error-message">
-                <p>{error}</p>
-                {!showApiSettings && (
-                  <button
-                    type="button"
-                    className="error-api-btn"
-                    onClick={() => setShowApiSettings(true)}
-                  >
-                    Configure API Connection URL & Key ⚙
-                  </button>
-                )}
-              </div>
-            )}
           </form>
         </div>
 
