@@ -1,5 +1,7 @@
 // Standalone Client-side Deadline Estimator Engine (No External Backend Required)
 import tasksData from './tasksData.json'
+import { projectVectorDB } from './vectorDb'
+import type { ProjectRecord } from './vectorDb'
 
 export interface TaskRecord {
   id: number
@@ -18,11 +20,18 @@ export interface SimilarTask {
   similarity: number
 }
 
+export interface SimilarProject extends ProjectRecord {
+  similarity: number
+}
+
 export interface EstimateResult {
   point_estimate_days: number
   range_min_days: number
   range_max_days: number
   similar_tasks: SimilarTask[]
+  similar_project: SimilarProject
+  rag_impact: string
+  baseline_estimate_days: number
 }
 
 export interface EvolutionStep {
@@ -33,6 +42,9 @@ export interface EvolutionStep {
   range_min_days: number
   range_max_days: number
   similar_tasks: SimilarTask[]
+  similar_project: SimilarProject
+  rag_impact: string
+  baseline_estimate_days: number
 }
 
 export interface EvaluationInfo {
@@ -239,13 +251,43 @@ class ClientEstimator {
       }
     })
 
-    const pointEstimate = totalWeight > 0 ? weightedSum / totalWeight : 3.0
+    const baselineEstimate = totalWeight > 0 ? weightedSum / totalWeight : 3.0
+
+    // Retrieve similar project from Project Vector DB (RAG)
+    const { project, similarity: projSimilarity } = projectVectorDB.search(title, description)
+
+    let adjustedEstimate = baselineEstimate
+    let ragAdjustedMin = minDays === Infinity ? 1.0 : minDays
+    let ragAdjustedMax = maxDays === -Infinity ? 5.0 : maxDays
+
+    if (projSimilarity > 0.05) {
+      const weight = projSimilarity * 0.4
+      adjustedEstimate = baselineEstimate * (1 - weight) + project.actual_days * weight
+      ragAdjustedMin = Math.min(ragAdjustedMin, project.actual_days * 0.75)
+      ragAdjustedMax = Math.max(ragAdjustedMax, project.actual_days * 1.25)
+    }
+
+    const impactDiff = adjustedEstimate - baselineEstimate
+    let impactText = ''
+    if (Math.abs(impactDiff) < 0.1) {
+      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity). No significant impact on estimates.`
+    } else if (impactDiff > 0) {
+      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity, took ${project.actual_days}d). Increased estimate by +${Math.round(impactDiff * 10) / 10}d due to reference project scale.`
+    } else {
+      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity, took ${project.actual_days}d). Reduced estimate by ${Math.round(impactDiff * 10) / 10}d based on reference project execution.`
+    }
 
     return {
-      point_estimate_days: Math.round(pointEstimate * 10) / 10,
-      range_min_days: minDays === Infinity ? 1.0 : Math.round(minDays * 10) / 10,
-      range_max_days: maxDays === -Infinity ? 5.0 : Math.round(maxDays * 10) / 10,
+      point_estimate_days: Math.round(adjustedEstimate * 10) / 10,
+      range_min_days: Math.round(ragAdjustedMin * 10) / 10,
+      range_max_days: Math.round(ragAdjustedMax * 10) / 10,
       similar_tasks: similarTasks,
+      similar_project: {
+        ...project,
+        similarity: projSimilarity,
+      },
+      rag_impact: impactText,
+      baseline_estimate_days: Math.round(baselineEstimate * 10) / 10,
     }
   }
 
@@ -272,6 +314,9 @@ class ClientEstimator {
         range_min_days: est.range_min_days,
         range_max_days: est.range_max_days,
         similar_tasks: est.similar_tasks,
+        similar_project: est.similar_project,
+        rag_impact: est.rag_impact,
+        baseline_estimate_days: est.baseline_estimate_days,
       })
     })
 

@@ -12,6 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import OneHotEncoder
 
+from vector_db import ProjectVectorDB
+
 DATA_PATH = Path(__file__).parent / "data" / "tasks.csv"
 K_NEIGHBORS = 5
 CATEGORY_WEIGHT = 0.35
@@ -53,6 +55,9 @@ class DeadlineEstimator:
         self.category_matrix = self.category_encoder.fit_transform(categories)
 
         self.durations = np.array([t["actual_days"] for t in self.training_tasks])
+        
+        # Initialize Vector DB for Projects
+        self.project_db = ProjectVectorDB()
 
     def _feature_vector(self, title: str, description: str, category: str) -> np.ndarray:
         text_vec = self.vectorizer.transform([f"{title} {description}"]).toarray()
@@ -93,11 +98,51 @@ class DeadlineEstimator:
                 }
             )
 
+        # Retrieve similar project using Vector DB (RAG)
+        similar_project, proj_similarity = self.project_db.search(title, description)
+        
+        # Adjust estimate based on the similar project reference
+        baseline_estimate = point_estimate
+        if proj_similarity > 0.05:
+            # Shift estimate toward project actual days scaled by similarity
+            weight = proj_similarity * 0.4
+            adjusted_estimate = baseline_estimate * (1.0 - weight) + similar_project["actual_days"] * weight
+            
+            # Incorporate project complexity variance into range bounds
+            rag_adjusted_min = min(range_min, similar_project["actual_days"] * 0.75)
+            rag_adjusted_max = max(range_max, similar_project["actual_days"] * 1.25)
+        else:
+            adjusted_estimate = baseline_estimate
+            rag_adjusted_min = range_min
+            rag_adjusted_max = range_max
+
+        # Explain how the project affected the estimate
+        impact_diff = adjusted_estimate - baseline_estimate
+        if abs(impact_diff) < 0.1:
+            impact_text = f"Matched '{similar_project['name']}' ({int(proj_similarity*100)}% similarity). No significant impact on estimates."
+        elif impact_diff > 0:
+            impact_text = f"Matched '{similar_project['name']}' ({int(proj_similarity*100)}% similarity, took {similar_project['actual_days']}d). Increased estimate by +{round(impact_diff, 1)}d due to reference project scale."
+        else:
+            impact_text = f"Matched '{similar_project['name']}' ({int(proj_similarity*100)}% similarity, took {similar_project['actual_days']}d). Reduced estimate by {round(impact_diff, 1)}d based on reference project execution."
+
         return {
-            "point_estimate_days": round(point_estimate, 1),
-            "range_min_days": round(range_min, 1),
-            "range_max_days": round(range_max, 1),
+            "point_estimate_days": round(adjusted_estimate, 1),
+            "range_min_days": round(rag_adjusted_min, 1),
+            "range_max_days": round(rag_adjusted_max, 1),
             "similar_tasks": similar_tasks,
+            "similar_project": {
+                "id": similar_project["id"],
+                "name": similar_project["name"],
+                "description": similar_project["description"],
+                "actual_days": similar_project["actual_days"],
+                "complexity": similar_project["complexity"],
+                "team_size": similar_project["team_size"],
+                "technologies": similar_project["technologies"],
+                "key_outcomes": similar_project["key_outcomes"],
+                "similarity": proj_similarity
+            },
+            "rag_impact": impact_text,
+            "baseline_estimate_days": round(baseline_estimate, 1)
         }
 
     def estimate_evolution(self, title: str, description: str, category: str) -> list[dict]:
@@ -122,7 +167,10 @@ class DeadlineEstimator:
                 "point_estimate_days": est["point_estimate_days"],
                 "range_min_days": est["range_min_days"],
                 "range_max_days": est["range_max_days"],
-                "similar_tasks": est["similar_tasks"]
+                "similar_tasks": est["similar_tasks"],
+                "similar_project": est["similar_project"],
+                "rag_impact": est["rag_impact"],
+                "baseline_estimate_days": est["baseline_estimate_days"]
             })
         return evolution
 
@@ -154,3 +202,4 @@ class DeadlineEstimator:
             "mean_absolute_error_days": round(mae, 2),
             "predictions": predictions,
         }
+

@@ -263,6 +263,9 @@ function App() {
   const displayMin = currentStepData ? currentStepData.range_min_days : result?.range_min_days
   const displayMax = currentStepData ? currentStepData.range_max_days : result?.range_max_days
   const displaySimilar = currentStepData ? currentStepData.similar_tasks : result?.similar_tasks
+  const displayProject = currentStepData ? currentStepData.similar_project : result?.similar_project
+  const displayRagImpact = currentStepData ? currentStepData.rag_impact : result?.rag_impact
+  const displayBaseline = currentStepData ? currentStepData.baseline_estimate_days : result?.baseline_estimate_days
 
   const categoryOptions: DropdownOption[] = categories.map((c) => ({
     label: c,
@@ -418,6 +421,33 @@ function App() {
                   <span><span className="dot range" /> Range from neighbors</span>
                   <span><span className="dot point" /> Point estimate</span>
                 </div>
+
+                {displayBaseline !== undefined && displayPoint !== undefined && (
+                  <div className="rag-impact-breakdown">
+                    <div className="rag-impact-header">🤖 RAG Estimate Adjustment</div>
+                    <div className="rag-impact-grid">
+                      <div className="rag-impact-cell">
+                        <span className="cell-lbl">Baseline (Tasks)</span>
+                        <span className="cell-val">{displayBaseline}d</span>
+                      </div>
+                      <div className="rag-impact-cell">
+                        <span className="cell-lbl">Project Shift</span>
+                        <span className="cell-val highlight">
+                          {displayPoint - displayBaseline >= 0 ? `+${(displayPoint - displayBaseline).toFixed(1)}d` : `${(displayPoint - displayBaseline).toFixed(1)}d`}
+                        </span>
+                      </div>
+                      <div className="rag-impact-cell">
+                        <span className="cell-lbl">Final Estimate</span>
+                        <span className="cell-val">{displayPoint}d</span>
+                      </div>
+                    </div>
+                    {displayRagImpact && (
+                      <div className="rag-impact-desc">
+                        {displayRagImpact}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {evolution && evolution.length > 1 && (
@@ -451,6 +481,45 @@ function App() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {displayProject && (
+                <div className="similar-project-section">
+                  <h3>Retrieved Reference Project (Vector DB / RAG)</h3>
+                  <div className="project-card-detail">
+                    <div className="project-card-header">
+                      <div className="project-title-wrapper">
+                        <h4>{displayProject.name}</h4>
+                        <span className="project-match">{(displayProject.similarity * 100).toFixed(0)}% match</span>
+                      </div>
+                      <div className="project-badge-row">
+                        <span className="project-badge duration">{displayProject.actual_days} days actual</span>
+                        <span className="project-badge complexity">{displayProject.complexity} Complexity</span>
+                        <span className="project-badge team">Team Size: {displayProject.team_size}</span>
+                      </div>
+                    </div>
+                    
+                    <p className="project-description">{displayProject.description}</p>
+                    
+                    <div className="project-tech-section">
+                      <strong>Technologies Used:</strong>
+                      <div className="tech-tags">
+                        {displayProject.technologies.map(tech => (
+                          <span key={tech} className="tech-tag">{tech}</span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="project-outcomes-section">
+                      <strong>Key Reference Outcomes:</strong>
+                      <ul>
+                        {displayProject.key_outcomes.map((outcome, i) => (
+                          <li key={i}>{outcome}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               )}
 

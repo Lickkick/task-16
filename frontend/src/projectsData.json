@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Enterprise Authentication & Multi-Tenant Access Migration",
+    "description": "Comprehensive migration of user authentication to support multi-tenant workspaces, 2FA/TOTP setup, role-based access control (Admin, Member, Viewer), and secure secrets management via HashiCorp Vault. Includes auditing session handling, token verification, and redirect safety on mobile platforms.",
+    "actual_days": 32.5,
+    "complexity": "High",
+    "team_size": 3,
+    "technologies": ["OAuth2", "Vault", "React", "JWT", "TOTP"],
+    "key_outcomes": [
+      "Secured 15+ external API client systems",
+      "Successfully integrated TOTP 2FA without downtime",
+      "Reduced unauthorized session access attempts to zero"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Production Monitoring & Auto-Scaling Infrastructure Setup",
+    "description": "Establish automated CI/CD pipelines using GitHub Actions, configure Docker Compose environments for local development, and deploy cloud-scale monitoring with Prometheus, Grafana, and auto-scaling rules on Kubernetes clusters.",
+    "actual_days": 14.5,
+    "complexity": "Medium",
+    "team_size": 1,
+    "technologies": ["Kubernetes", "Prometheus", "Grafana", "Docker", "GitHub Actions"],
+    "key_outcomes": [
+      "99.95% system uptime achieved after dashboards launched",
+      "Auto-scaling triggers respond within 45 seconds of load spikes",
+      "Developer local setup time reduced from days to one command"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Real-time Collaborative Kanban Workspace & Document Sync",
+    "description": "Designing and building a highly interactive drag-and-drop Kanban Board with real-time editing syncing via WebSockets to backend stores. Explored real-time collaborative conflict resolution spikes utilizing CRDTs (Conflict-free Replicated Data Types like Yjs) for shared editing workspace.",
+    "actual_days": 17.0,
+    "complexity": "Very High",
+    "team_size": 2,
+    "technologies": ["Yjs", "WebSockets", "Node.js", "React", "CRDTs"],
+    "key_outcomes": [
+      "Achieved sub-100ms sync latency across concurrent sessions",
+      "Robust state merging with zero data conflicts on concurrency spikes",
+      "Frictionless Kanban state transitions under heavy user load"
+    ]
+  },
+  {
+    "id": 4,
+    "name": "E-Commerce Checkout Flow, EU Tax Integration & Load Testing",
+    "description": "Creating robust end-to-end integration tests for payment validation modules and EU orders tax/VAT calculation services (specifically handling German/French tax offsets). Validated peak traffic performance with k6 simulating 500 concurrent active checkout users.",
+    "actual_days": 9.5,
+    "complexity": "Medium",
+    "team_size": 2,
+    "technologies": ["k6", "Node.js", "Stripe API", "VAT calculations"],
+    "key_outcomes": [
+      "Ensured 100% tax calculation accuracy for cross-border EU purchases",
+      "Identified and patched 2 race conditions during database checkouts",
+      "Validated checkout endpoint average response time remains under 250ms"
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Interactive Client Dashboard & Filtered Reporting Engine",
+    "description": "Design and build a responsive mobile-friendly dashboard using modern shimmer skeleton states during loading, and implement an interactive drag-and-drop custom report builder with multi-column filters to export files.",
+    "actual_days": 20.5,
+    "complexity": "High",
+    "team_size": 2,
+    "technologies": ["React", "CSS Grid", "Chart.js", "CSV export"],
+    "key_outcomes": [
+      "Export capability supports tables of up to 10k rows instantly",
+      "Dashboard load feels 40% faster due to skeleton component integration",
+      "Smooth layout adaptation across tablet, mobile, and ultra-wide screens"
+    ]
+  }
+]

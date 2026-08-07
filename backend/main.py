@@ -45,11 +45,26 @@ class SimilarTask(BaseModel):
     similarity: float
 
 
+class SimilarProject(BaseModel):
+    id: int
+    name: str
+    description: str
+    actual_days: float
+    complexity: str
+    team_size: int
+    technologies: list[str]
+    key_outcomes: list[str]
+    similarity: float
+
+
 class EstimateResponse(BaseModel):
     point_estimate_days: float
     range_min_days: float
     range_max_days: float
     similar_tasks: list[SimilarTask]
+    similar_project: SimilarProject
+    rag_impact: str
+    baseline_estimate_days: float
 
 
 class EvolutionStep(BaseModel):
@@ -60,6 +75,9 @@ class EvolutionStep(BaseModel):
     range_min_days: float
     range_max_days: float
     similar_tasks: list[SimilarTask]
+    similar_project: SimilarProject
+    rag_impact: str
+    baseline_estimate_days: float
 
 
 class EvolutionResponse(BaseModel):
