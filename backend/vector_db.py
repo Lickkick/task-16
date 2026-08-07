@@ -16,7 +16,7 @@ class ProjectVectorDB:
         
         # Prepare text representation for each project
         self.corpus = [
-            f"{p['name']} {p['description']} {' '.join(p['technologies'])}"
+            f"{p['name']} {p['description']} {' '.join(p['technologies'])} {p.get('implementation_details', '')} {' '.join(p.get('blockers', []))}"
             for p in self.projects
         ]
         

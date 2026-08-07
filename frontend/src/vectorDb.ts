@@ -9,6 +9,9 @@ export interface ProjectRecord {
   team_size: number
   technologies: string[]
   key_outcomes: string[]
+  blockers?: string[]
+  effort_breakdown?: Record<string, number>
+  implementation_details?: string
 }
 
 function tokenize(text: string): string[] {
@@ -44,7 +47,7 @@ class ClientProjectVectorDB {
   private projectVectors: Map<number, Vector> = new Map()
 
   constructor() {
-    this.projects = projectsData as ProjectRecord[]
+    this.projects = projectsData as unknown as ProjectRecord[]
     this.buildDatabase()
   }
 
@@ -54,7 +57,7 @@ class ClientProjectVectorDB {
     const docTokensMap: Map<number, string[]> = new Map()
 
     for (const project of this.projects) {
-      const text = `${project.name} ${project.description} ${project.technologies.join(' ')}`
+      const text = `${project.name} ${project.description} ${project.technologies.join(' ')} ${project.implementation_details || ''} ${(project.blockers || []).join(' ')}`
       const tokens = tokenize(text)
       docTokensMap.set(project.id, tokens)
 

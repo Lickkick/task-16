@@ -12,24 +12,25 @@ export interface TaskRecord {
   holdout: boolean
 }
 
-export interface SimilarTask {
-  id: number
-  title: string
-  category: string
-  actual_days: number
+export interface SimilarProject extends ProjectRecord {
   similarity: number
 }
 
-export interface SimilarProject extends ProjectRecord {
-  similarity: number
+export interface RagAnalysis {
+  similar_project: SimilarProject
+  actual_completion_days: number
+  current_estimate_days: number
+  reason: string
+  effort_breakdown: Record<string, number>
+  potential_risks: string[]
+  recommendations: string[]
 }
 
 export interface EstimateResult {
   point_estimate_days: number
   range_min_days: number
   range_max_days: number
-  similar_tasks: SimilarTask[]
-  similar_project: SimilarProject
+  rag_analysis: RagAnalysis
   rag_impact: string
   baseline_estimate_days: number
 }
@@ -41,8 +42,7 @@ export interface EvolutionStep {
   point_estimate_days: number
   range_min_days: number
   range_max_days: number
-  similar_tasks: SimilarTask[]
-  similar_project: SimilarProject
+  rag_analysis: RagAnalysis
   rag_impact: string
   baseline_estimate_days: number
 }
@@ -234,21 +234,13 @@ class ClientEstimator {
     let minDays = Infinity
     let maxDays = -Infinity
 
-    const similarTasks: SimilarTask[] = topK.map(({ task, sim }) => {
+    topK.forEach(({ task, sim }) => {
       const weight = Math.max(sim, 0.01)
       totalWeight += weight
       weightedSum += task.actual_days * weight
 
       if (task.actual_days < minDays) minDays = task.actual_days
       if (task.actual_days > maxDays) maxDays = task.actual_days
-
-      return {
-        id: task.id,
-        title: task.title,
-        category: task.category,
-        actual_days: task.actual_days,
-        similarity: Math.round(sim * 1000) / 1000,
-      }
     })
 
     const baselineEstimate = totalWeight > 0 ? weightedSum / totalWeight : 3.0
@@ -267,24 +259,63 @@ class ClientEstimator {
       ragAdjustedMax = Math.max(ragAdjustedMax, project.actual_days * 1.25)
     }
 
+    const simPct = Math.round(projSimilarity * 100)
+    const currentEstimateRounded = Math.round(adjustedEstimate * 10) / 10
+    const diffDays = Math.round((currentEstimateRounded - project.actual_days) * 10) / 10
+    const diffStr =
+      diffDays > 0
+        ? `adding approximately ${diffDays} extra day(s)`
+        : diffDays < 0
+        ? `saving approximately ${Math.abs(diffDays)} day(s)`
+        : `matching the expected baseline scope`
+
+    const defaultBreakdown: Record<string, number> = {
+      'API Integration': 45,
+      'Frontend Integration': 35,
+      'Testing & Security': 20,
+    }
+    const effortBk = project.effort_breakdown || defaultBreakdown
+    const effortItems = Object.entries(effortBk).map(([k, v]) => `${k} accounts for ${v}%`)
+    const breakdownText = effortItems.length > 0 ? effortItems.join(', ') : 'API integration accounts for 45%'
+
+    const reasonText = `The current task introduces ${category.toLowerCase()} requirements, ${diffStr} compared to retrieved reference project '${project.name}' (${simPct}% similarity, actual completion: ${project.actual_days} days). Based on similar project vectors, ${breakdownText}.`
+
+    const risks = project.blockers || [
+      'Dependency changes and API compatibility issues',
+      'Environment configuration and permissions delay',
+    ]
+
+    const recommendations = [
+      'Perform early schema validation and API mock tests before frontend binding.',
+      'Pre-allocate CI pipeline runners to prevent build bottleneck delays.',
+      'Audit environment secrets and permissions prior to deployment.',
+    ]
+
     const impactDiff = adjustedEstimate - baselineEstimate
     let impactText = ''
     if (Math.abs(impactDiff) < 0.1) {
-      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity). No significant impact on estimates.`
+      impactText = `Matched '${project.name}' (${simPct}% similarity). No significant impact on estimates.`
     } else if (impactDiff > 0) {
-      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity, took ${project.actual_days}d). Increased estimate by +${Math.round(impactDiff * 10) / 10}d due to reference project scale.`
+      impactText = `Matched '${project.name}' (${simPct}% similarity, took ${project.actual_days}d). Increased estimate by +${Math.round(impactDiff * 10) / 10}d due to reference project scale.`
     } else {
-      impactText = `Matched '${project.name}' (${Math.round(projSimilarity * 100)}% similarity, took ${project.actual_days}d). Reduced estimate by ${Math.round(impactDiff * 10) / 10}d based on reference project execution.`
+      impactText = `Matched '${project.name}' (${simPct}% similarity, took ${project.actual_days}d). Reduced estimate by ${Math.round(impactDiff * 10) / 10}d based on reference project execution.`
     }
 
     return {
-      point_estimate_days: Math.round(adjustedEstimate * 10) / 10,
+      point_estimate_days: currentEstimateRounded,
       range_min_days: Math.round(ragAdjustedMin * 10) / 10,
       range_max_days: Math.round(ragAdjustedMax * 10) / 10,
-      similar_tasks: similarTasks,
-      similar_project: {
-        ...project,
-        similarity: projSimilarity,
+      rag_analysis: {
+        similar_project: {
+          ...project,
+          similarity: projSimilarity,
+        },
+        actual_completion_days: project.actual_days,
+        current_estimate_days: currentEstimateRounded,
+        reason: reasonText,
+        effort_breakdown: effortBk,
+        potential_risks: risks,
+        recommendations: recommendations,
       },
       rag_impact: impactText,
       baseline_estimate_days: Math.round(baselineEstimate * 10) / 10,
@@ -313,8 +344,7 @@ class ClientEstimator {
         point_estimate_days: est.point_estimate_days,
         range_min_days: est.range_min_days,
         range_max_days: est.range_max_days,
-        similar_tasks: est.similar_tasks,
-        similar_project: est.similar_project,
+        rag_analysis: est.rag_analysis,
         rag_impact: est.rag_impact,
         baseline_estimate_days: est.baseline_estimate_days,
       })

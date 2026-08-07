@@ -116,6 +116,65 @@ class DeadlineEstimator:
             rag_adjusted_min = range_min
             rag_adjusted_max = range_max
 
+        # Construct RAG Comparative Analysis & Explanation
+        sim_pct = int(proj_similarity * 100)
+        diff_days = round(adjusted_estimate - float(similar_project["actual_days"]), 1)
+        if diff_days > 0:
+            diff_str = f"adding approximately {diff_days} extra day(s)"
+        elif diff_days < 0:
+            diff_str = f"saving approximately {abs(diff_days)} day(s)"
+        else:
+            diff_str = "matching the historical baseline scope"
+
+        effort_bk = similar_project.get("effort_breakdown", {
+            "API Integration": 45,
+            "Frontend Integration": 35,
+            "Testing & Security": 20
+        })
+
+        effort_items = [f"{k} accounts for {v}%" for k, v in effort_bk.items()]
+        breakdown_text = ", while ".join(effort_items) if effort_items else "API integration consumes around 45% of effort"
+
+        reason_text = (
+            f"The current task introduces {category.lower()} requirements, {diff_str} compared to "
+            f"retrieved project '{similar_project['name']}' ({sim_pct}% similarity, actual completion: {similar_project['actual_days']}d). "
+            f"Based on similar projects, {breakdown_text}."
+        )
+
+        risks = similar_project.get("blockers", [
+            "Dependency changes and API compatibility issues",
+            "Environment configuration and permissions delay"
+        ])
+
+        recommendations = [
+            "Perform early schema validation and API mock tests before frontend binding.",
+            "Pre-allocate CI pipeline runners to prevent build bottleneck delays.",
+            "Audit environment secrets and permissions prior to deployment."
+        ]
+
+        rag_analysis = {
+            "similar_project": {
+                "id": similar_project["id"],
+                "name": similar_project["name"],
+                "description": similar_project["description"],
+                "actual_days": similar_project["actual_days"],
+                "complexity": similar_project["complexity"],
+                "team_size": similar_project["team_size"],
+                "technologies": similar_project["technologies"],
+                "key_outcomes": similar_project["key_outcomes"],
+                "blockers": similar_project.get("blockers", []),
+                "effort_breakdown": effort_bk,
+                "implementation_details": similar_project.get("implementation_details", ""),
+                "similarity": proj_similarity
+            },
+            "actual_completion_days": similar_project["actual_days"],
+            "current_estimate_days": round(adjusted_estimate, 1),
+            "reason": reason_text,
+            "effort_breakdown": effort_bk,
+            "potential_risks": risks,
+            "recommendations": recommendations
+        }
+
         # Explain how the project affected the estimate
         impact_diff = adjusted_estimate - baseline_estimate
         if abs(impact_diff) < 0.1:
@@ -129,18 +188,7 @@ class DeadlineEstimator:
             "point_estimate_days": round(adjusted_estimate, 1),
             "range_min_days": round(rag_adjusted_min, 1),
             "range_max_days": round(rag_adjusted_max, 1),
-            "similar_tasks": similar_tasks,
-            "similar_project": {
-                "id": similar_project["id"],
-                "name": similar_project["name"],
-                "description": similar_project["description"],
-                "actual_days": similar_project["actual_days"],
-                "complexity": similar_project["complexity"],
-                "team_size": similar_project["team_size"],
-                "technologies": similar_project["technologies"],
-                "key_outcomes": similar_project["key_outcomes"],
-                "similarity": proj_similarity
-            },
+            "rag_analysis": rag_analysis,
             "rag_impact": impact_text,
             "baseline_estimate_days": round(baseline_estimate, 1)
         }
@@ -167,8 +215,7 @@ class DeadlineEstimator:
                 "point_estimate_days": est["point_estimate_days"],
                 "range_min_days": est["range_min_days"],
                 "range_max_days": est["range_max_days"],
-                "similar_tasks": est["similar_tasks"],
-                "similar_project": est["similar_project"],
+                "rag_analysis": est["rag_analysis"],
                 "rag_impact": est["rag_impact"],
                 "baseline_estimate_days": est["baseline_estimate_days"]
             })

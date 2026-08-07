@@ -37,15 +37,7 @@ class EstimateRequest(BaseModel):
     category: str
 
 
-class SimilarTask(BaseModel):
-    id: int
-    title: str
-    category: str
-    actual_days: float
-    similarity: float
-
-
-class SimilarProject(BaseModel):
+class RagProjectDetail(BaseModel):
     id: int
     name: str
     description: str
@@ -54,15 +46,27 @@ class SimilarProject(BaseModel):
     team_size: int
     technologies: list[str]
     key_outcomes: list[str]
+    blockers: list[str]
+    effort_breakdown: dict[str, float]
+    implementation_details: str
     similarity: float
+
+
+class RagAnalysis(BaseModel):
+    similar_project: RagProjectDetail
+    actual_completion_days: float
+    current_estimate_days: float
+    reason: str
+    effort_breakdown: dict[str, float]
+    potential_risks: list[str]
+    recommendations: list[str]
 
 
 class EstimateResponse(BaseModel):
     point_estimate_days: float
     range_min_days: float
     range_max_days: float
-    similar_tasks: list[SimilarTask]
-    similar_project: SimilarProject
+    rag_analysis: RagAnalysis
     rag_impact: str
     baseline_estimate_days: float
 
@@ -74,8 +78,7 @@ class EvolutionStep(BaseModel):
     point_estimate_days: float
     range_min_days: float
     range_max_days: float
-    similar_tasks: list[SimilarTask]
-    similar_project: SimilarProject
+    rag_analysis: RagAnalysis
     rag_impact: str
     baseline_estimate_days: float
 

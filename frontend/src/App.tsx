@@ -281,8 +281,7 @@ function App() {
   const displayPoint = currentStepData ? currentStepData.point_estimate_days : result?.point_estimate_days
   const displayMin = currentStepData ? currentStepData.range_min_days : result?.range_min_days
   const displayMax = currentStepData ? currentStepData.range_max_days : result?.range_max_days
-  const displaySimilar = currentStepData ? currentStepData.similar_tasks : result?.similar_tasks
-  const displayProject = currentStepData ? currentStepData.similar_project : result?.similar_project
+  const displayRagAnalysis = currentStepData ? currentStepData.rag_analysis : result?.rag_analysis
   const displayRagImpact = currentStepData ? currentStepData.rag_impact : result?.rag_impact
   const displayBaseline = currentStepData ? currentStepData.baseline_estimate_days : result?.baseline_estimate_days
 
@@ -504,62 +503,78 @@ function App() {
                 </div>
               )}
 
-              {displayProject && (
-                <div className="similar-project-section">
-                  <h3>Retrieved Reference Project (Vector DB / RAG)</h3>
-                  <div className="project-card-detail">
-                    <div className="project-card-header">
-                      <div className="project-title-wrapper">
-                        <h4>{displayProject.name}</h4>
-                        <span className="project-match">{(displayProject.similarity * 100).toFixed(0)}% match</span>
-                      </div>
-                      <div className="project-badge-row">
-                        <span className="project-badge duration">{displayProject.actual_days} days actual</span>
-                        <span className="project-badge complexity">{displayProject.complexity} Complexity</span>
-                        <span className="project-badge team">Team Size: {displayProject.team_size}</span>
-                      </div>
+              {displayRagAnalysis && (
+                <div className="rag-estimation-card">
+                  <div className="rag-card-header">
+                    <h3>AI Project Estimation using RAG</h3>
+                    <span className="rag-similarity-pill">
+                      {(displayRagAnalysis.similar_project.similarity * 100).toFixed(0)}% similarity
+                    </span>
+                  </div>
+
+                  <div className="rag-summary-grid">
+                    <div className="rag-summary-cell">
+                      <span className="rag-cell-label">Similar Project</span>
+                      <span className="rag-cell-value">{displayRagAnalysis.similar_project.name}</span>
                     </div>
-                    
-                    <p className="project-description">{displayProject.description}</p>
-                    
-                    <div className="project-tech-section">
-                      <strong>Technologies Used:</strong>
-                      <div className="tech-tags">
-                        {displayProject.technologies.map(tech => (
-                          <span key={tech} className="tech-tag">{tech}</span>
+                    <div className="rag-summary-cell">
+                      <span className="rag-cell-label">Actual Completion</span>
+                      <span className="rag-cell-value">{displayRagAnalysis.actual_completion_days} days</span>
+                    </div>
+                    <div className="rag-summary-cell highlight">
+                      <span className="rag-cell-label">Current Estimate</span>
+                      <span className="rag-cell-value">{displayRagAnalysis.current_estimate_days} days</span>
+                    </div>
+                  </div>
+
+                  <div className="rag-reason-box">
+                    <strong>Reason:</strong>
+                    <p>{displayRagAnalysis.reason}</p>
+                  </div>
+
+                  {displayRagAnalysis.effort_breakdown && (
+                    <div className="rag-breakdown-section">
+                      <strong>Effort Distribution Breakdown:</strong>
+                      <div className="rag-breakdown-bars">
+                        {Object.entries(displayRagAnalysis.effort_breakdown).map(([key, pct]) => (
+                          <div key={key} className="breakdown-item">
+                            <div className="breakdown-label-row">
+                              <span>{key}</span>
+                              <span>{pct}%</span>
+                            </div>
+                            <div className="breakdown-bar-track">
+                              <div
+                                className="breakdown-bar-fill"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
+                  )}
 
-                    <div className="project-outcomes-section">
-                      <strong>Key Reference Outcomes:</strong>
+                  {displayRagAnalysis.potential_risks && displayRagAnalysis.potential_risks.length > 0 && (
+                    <div className="rag-risks-section">
+                      <strong>Potential Timeline Risks:</strong>
                       <ul>
-                        {displayProject.key_outcomes.map((outcome, i) => (
-                          <li key={i}>{outcome}</li>
+                        {displayRagAnalysis.potential_risks.map((risk, i) => (
+                          <li key={i}>{risk}</li>
                         ))}
                       </ul>
                     </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {displaySimilar && displaySimilar.length > 0 && (
-                <div className="similar-tasks-section">
-                  <h3>K-Nearest Historical Tasks</h3>
-                  <div className="tasks-grid">
-                    {displaySimilar.map((t) => (
-                      <div key={t.id} className="task-item">
-                        <div className="task-header">
-                          <span className="task-title">{t.title}</span>
-                          <span className="task-sim">{(t.similarity * 100).toFixed(0)}% match</span>
-                        </div>
-                        <div className="task-meta">
-                          <span className="task-category">{t.category}</span>
-                          <span className="task-duration">{t.actual_days} days actual</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {displayRagAnalysis.recommendations && displayRagAnalysis.recommendations.length > 0 && (
+                    <div className="rag-recommendations-section">
+                      <strong>Recommendations to Reduce Delays:</strong>
+                      <ul>
+                        {displayRagAnalysis.recommendations.map((rec, i) => (
+                          <li key={i}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

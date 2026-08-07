@@ -11,7 +11,18 @@
       "Secured 15+ external API client systems",
       "Successfully integrated TOTP 2FA without downtime",
       "Reduced unauthorized session access attempts to zero"
-    ]
+    ],
+    "blockers": [
+      "Cross-domain session cookie scoping issues on mobile Safari",
+      "Token refresh race conditions under concurrent client requests",
+      "Vault policy setup latency during initial staging setup"
+    ],
+    "effort_breakdown": {
+      "API Integration": 45,
+      "Frontend Integration": 35,
+      "Testing & Security": 20
+    },
+    "implementation_details": "Implemented JWT rotation with Refresh Token cookies, integrated TOTP QR code generation, and setup HashiCorp Vault secrets storage for environment isolation."
   },
   {
     "id": 2,
@@ -25,7 +36,17 @@
       "99.95% system uptime achieved after dashboards launched",
       "Auto-scaling triggers respond within 45 seconds of load spikes",
       "Developer local setup time reduced from days to one command"
-    ]
+    ],
+    "blockers": [
+      "Metric scraping permission limits on Kubernetes pod namespaces",
+      "GitHub Actions runner timeout on large container image builds"
+    ],
+    "effort_breakdown": {
+      "DevOps & CI/CD": 50,
+      "Monitoring Setup": 30,
+      "Documentation": 20
+    },
+    "implementation_details": "Created helm charts, configured Prometheus alertmanager routes, and built multi-stage Dockerfiles with layer caching."
   },
   {
     "id": 3,
@@ -39,7 +60,17 @@
       "Achieved sub-100ms sync latency across concurrent sessions",
       "Robust state merging with zero data conflicts on concurrency spikes",
       "Frictionless Kanban state transitions under heavy user load"
-    ]
+    ],
+    "blockers": [
+      "WebSocket connection drops on erratic client network conditions",
+      "CRDT state garbage collection memory growth during long sessions"
+    ],
+    "effort_breakdown": {
+      "WebSocket Engine": 55,
+      "Frontend UI": 30,
+      "Optimization": 15
+    },
+    "implementation_details": "Built Yjs provider over WebSockets, implemented optimistic UI updates for card drags, and added sync state reconnection handlers."
   },
   {
     "id": 4,
@@ -53,7 +84,17 @@
       "Ensured 100% tax calculation accuracy for cross-border EU purchases",
       "Identified and patched 2 race conditions during database checkouts",
       "Validated checkout endpoint average response time remains under 250ms"
-    ]
+    ],
+    "blockers": [
+      "Stripe webhook delivery latency during sandbox test runs",
+      "Database lock contention on inventory tables during high k6 load spikes"
+    ],
+    "effort_breakdown": {
+      "API Integration": 45,
+      "Frontend Integration": 35,
+      "Testing & Load": 20
+    },
+    "implementation_details": "Integrated Stripe Elements checkout, added automated VAT rate resolution by country code, and performed load simulation with k6 scripts."
   },
   {
     "id": 5,
@@ -67,6 +108,16 @@
       "Export capability supports tables of up to 10k rows instantly",
       "Dashboard load feels 40% faster due to skeleton component integration",
       "Smooth layout adaptation across tablet, mobile, and ultra-wide screens"
-    ]
+    ],
+    "blockers": [
+      "Large dataset memory overhead during client-side CSV generation",
+      "Chart rerender lag when switching time-series date filters quickly"
+    ],
+    "effort_breakdown": {
+      "Frontend Integration": 50,
+      "Data Filtering": 30,
+      "Export & Charting": 20
+    },
+    "implementation_details": "Built custom virtualized grid components, integrated Web Workers for off-thread CSV formatting, and optimized Chart.js canvas rendering."
   }
 ]
