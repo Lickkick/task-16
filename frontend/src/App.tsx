@@ -212,11 +212,30 @@ function App() {
     setIsAutoDetected(false) // User manually selected category
   }
 
-  const handleApplyPreset = (preset: TestPreset) => {
+  const handleApplyPreset = (preset: TestPreset, autoSubmit = true) => {
     setTitle(preset.title)
     setDescription(preset.description)
     setCategory(preset.category)
     setIsAutoDetected(true)
+
+    if (autoSubmit) {
+      setLoading(true)
+      setResult(null)
+      setEvolution(null)
+      setActiveStep(null)
+
+      setTimeout(() => {
+        const mainResult = estimatorEngine.estimate(preset.title, preset.description, preset.category)
+        const evoSteps = estimatorEngine.estimateEvolution(preset.title, preset.description, preset.category)
+
+        setResult(mainResult)
+        setEvolution(evoSteps)
+        if (evoSteps.length > 0) {
+          setActiveStep(evoSteps.length)
+        }
+        setLoading(false)
+      }, 150)
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -277,11 +296,12 @@ function App() {
       <header className="header">
         <div className="header-top">
           <div className="header-badge">SFCollab Task Suite</div>
+          <div className="header-badge rag-badge">🧠 RAG Vector DB Active</div>
         </div>
 
         <h1>Smart Deadline Estimator</h1>
         <p className="subtitle">
-          Leverage historical task patterns to predict development duration and map team uncertainty.
+          Retrieval-Augmented Generation (RAG) & Vector Similarity Search over historical task and project benchmarks.
         </p>
 
         {evaluation && (
@@ -545,8 +565,49 @@ function App() {
             </div>
           ) : (
             <div className="empty-results">
-              <h3>No Prediction Yet</h3>
-              <p>Fill out the form and submit to see the estimated duration, range, and similar tasks.</p>
+              <div className="rag-status-card">
+                <div className="rag-status-header">
+                  <span className="rag-status-icon">🧠</span>
+                  <div>
+                    <h3>RAG Vector DB System Active</h3>
+                    <p className="rag-status-sub">Retrieval-Augmented Generation context loaded</p>
+                  </div>
+                </div>
+
+                <div className="rag-features-list">
+                  <div className="rag-feature-item">
+                    <span className="rag-feature-bullet">🔍</span>
+                    <div>
+                      <strong>TF-IDF & Cosine Similarity K-NN</strong>
+                      <p>Retrieves top nearest historical tasks based on description & category embeddings.</p>
+                    </div>
+                  </div>
+
+                  <div className="rag-feature-item">
+                    <span className="rag-feature-bullet">📦</span>
+                    <div>
+                      <strong>Project Vector DB Benchmarking</strong>
+                      <p>Scans real project outcomes (technologies, complexity, team size) to adjust estimates.</p>
+                    </div>
+                  </div>
+
+                  <div className="rag-feature-item">
+                    <span className="rag-feature-bullet">📈</span>
+                    <div>
+                      <strong>Real-Time Timeline Evolution</strong>
+                      <p>Tracks estimate shifts sentence-by-sentence as requirement detail increases.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="try-sample-btn"
+                  onClick={() => handleApplyPreset(QUICK_TEST_PRESETS[0])}
+                >
+                  ⚡ Try Quick RAG Estimate Sample
+                </button>
+              </div>
             </div>
           )}
         </div>
