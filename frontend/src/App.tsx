@@ -22,37 +22,37 @@ interface TestPreset {
 
 const QUICK_TEST_PRESETS: TestPreset[] = [
   {
-    label: '🐛 Bug Fix',
+    label: 'Bug Fix',
     title: 'Fix login button not responding on mobile Safari',
     description: 'Users report the login button does nothing when tapped on iOS Safari. Likely a touch event handler issue.',
     category: 'Bug Fix',
   },
   {
-    label: '✨ Feature',
+    label: 'Feature',
     title: 'Add dark mode toggle to settings page',
     description: 'Implement a theme switcher that persists user preference in localStorage and applies CSS variables across the app.',
     category: 'Feature',
   },
   {
-    label: '⚙️ DevOps',
+    label: 'DevOps',
     title: 'Set up CI pipeline with GitHub Actions',
     description: 'Configure automated test runs, linting, and deployment on push to main branch.',
     category: 'DevOps',
   },
   {
-    label: '🛠️ Refactoring',
+    label: 'Refactoring',
     title: 'Extract shared form validation into library',
     description: 'Move duplicated email, phone, and password validation from 6 components into forms package.',
     category: 'Refactoring',
   },
   {
-    label: '🎨 Design',
+    label: 'Design',
     title: 'Design mobile-responsive dashboard layout',
     description: 'Adapt desktop dashboard widgets into collapsible cards for screens under 768px width.',
     category: 'Design',
   },
   {
-    label: '🧪 Testing',
+    label: 'Testing',
     title: 'Add unit tests for payment validation module',
     description: 'Cover edge cases: expired cards, invalid CVV, currency mismatches, and refund logic.',
     category: 'Testing',
@@ -296,7 +296,7 @@ function App() {
       <header className="header">
         <div className="header-top">
           <div className="header-badge">SFCollab Task Suite</div>
-          <div className="header-badge rag-badge">🧠 RAG Vector DB Active</div>
+          <div className="header-badge rag-badge">RAG Vector DB Active</div>
         </div>
 
         <h1>Smart Deadline Estimator</h1>
@@ -330,7 +330,7 @@ function App() {
           {/* Quick Test Box */}
           <div className="quick-test-box">
             <div className="quick-test-header">
-              <span>⚡ Quick Test Samples</span>
+              <span>Quick Test Samples</span>
               <span className="quick-test-sub">Click any sample to test title & auto-category detection:</span>
             </div>
             <div className="quick-test-chips">
@@ -380,7 +380,7 @@ function App() {
                 <span>Category</span>
                 {isAutoDetected && category && (
                   <span className="auto-detect-badge" title="Auto-detected based on task title & description keywords">
-                    ✨ Auto-detected: <strong>{category}</strong>
+                    Auto-detected: <strong>{category}</strong>
                   </span>
                 )}
               </div>
@@ -444,7 +444,7 @@ function App() {
 
                 {displayBaseline !== undefined && displayPoint !== undefined && (
                   <div className="rag-impact-breakdown">
-                    <div className="rag-impact-header">🤖 RAG Estimate Adjustment</div>
+                    <div className="rag-impact-header">RAG Estimate Adjustment</div>
                     <div className="rag-impact-grid">
                       <div className="rag-impact-cell">
                         <span className="cell-lbl">Baseline (Tasks)</span>
@@ -567,7 +567,6 @@ function App() {
             <div className="empty-results">
               <div className="rag-status-card">
                 <div className="rag-status-header">
-                  <span className="rag-status-icon">🧠</span>
                   <div>
                     <h3>RAG Vector DB System Active</h3>
                     <p className="rag-status-sub">Retrieval-Augmented Generation context loaded</p>
@@ -576,7 +575,6 @@ function App() {
 
                 <div className="rag-features-list">
                   <div className="rag-feature-item">
-                    <span className="rag-feature-bullet">🔍</span>
                     <div>
                       <strong>TF-IDF & Cosine Similarity K-NN</strong>
                       <p>Retrieves top nearest historical tasks based on description & category embeddings.</p>
@@ -584,7 +582,6 @@ function App() {
                   </div>
 
                   <div className="rag-feature-item">
-                    <span className="rag-feature-bullet">📦</span>
                     <div>
                       <strong>Project Vector DB Benchmarking</strong>
                       <p>Scans real project outcomes (technologies, complexity, team size) to adjust estimates.</p>
@@ -592,7 +589,6 @@ function App() {
                   </div>
 
                   <div className="rag-feature-item">
-                    <span className="rag-feature-bullet">📈</span>
                     <div>
                       <strong>Real-Time Timeline Evolution</strong>
                       <p>Tracks estimate shifts sentence-by-sentence as requirement detail increases.</p>
@@ -605,7 +601,7 @@ function App() {
                   className="try-sample-btn"
                   onClick={() => handleApplyPreset(QUICK_TEST_PRESETS[0])}
                 >
-                  ⚡ Try Quick RAG Estimate Sample
+                  Try Quick RAG Estimate Sample
                 </button>
               </div>
             </div>
